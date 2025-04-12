@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -52,6 +53,15 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				syntax: {
+					blue: '#0EA5E9',
+					purple: '#9b87f5',
+					dark: '#1A1F2C',
+					success: '#10B981',
+					warning: '#F59E0B',
+					error: '#EF4444',
+					gray: '#8E9196'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -84,11 +94,24 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				fadeIn: {
+					'0%': { opacity: '0' },
+					'100%': { opacity: '1' }
+				},
+				slideIn: {
+					'0%': { transform: 'translateX(-10px)', opacity: '0' },
+					'100%': { transform: 'translateX(0)', opacity: '1' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fadeIn 0.3s ease-out forwards',
+				'slide-in': 'slideIn 0.3s ease-out forwards'
+			},
+			fontFamily: {
+				mono: ['Fira Code', 'JetBrains Mono', 'monospace']
 			}
 		}
 	},
