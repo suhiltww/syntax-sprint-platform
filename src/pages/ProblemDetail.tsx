@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -283,7 +282,7 @@ const ProblemDetail = () => {
             <CardContent className="flex-grow">
               <div className="h-[600px] border rounded-md">
                 <CodeEditor 
-                  initialValue={code}
+                  value={code}
                   onChange={setCode}
                   language={language}
                 />

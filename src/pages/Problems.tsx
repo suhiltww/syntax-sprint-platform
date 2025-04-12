@@ -17,6 +17,15 @@ const Problems = () => {
   const { data: problems, isLoading } = useProblems(filters);
   const { data: solvedProblemIds = [] } = useUserSolvedProblems(user?.id);
   
+  // Create a handler to ensure type safety
+  const handleFilterChange = (newFilters: {
+    search: string;
+    difficulty: ('easy' | 'medium' | 'hard')[];
+    topics: string[];
+  }) => {
+    setFilters(newFilters);
+  };
+  
   return (
     <div className="container py-8 px-4 max-w-6xl">
       <div className="mb-8">
@@ -27,7 +36,7 @@ const Problems = () => {
       </div>
       
       <div className="mb-6">
-        <ProblemFilter onFilterChange={setFilters} />
+        <ProblemFilter onFilterChange={handleFilterChange} />
       </div>
       
       <div className="space-y-4 animated-list">
@@ -45,7 +54,7 @@ const Problems = () => {
             </div>
           ))
         ) : problems && problems.length > 0 ? (
-          problems.map((problem: Problem) => (
+          problems.map((problem) => (
             <ProblemCard 
               key={problem.id} 
               problem={problem} 
