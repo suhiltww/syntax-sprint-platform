@@ -29,7 +29,7 @@ export interface TestCase {
 // Fetch all problems
 export function useProblems(filters: {
   search?: string;
-  difficulty?: string[];
+  difficulty?: ('easy' | 'medium' | 'hard')[];
   topics?: string[];
 } = {}) {
   return useQuery({

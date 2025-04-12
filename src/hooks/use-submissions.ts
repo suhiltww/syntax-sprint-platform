@@ -87,9 +87,9 @@ export function useCreateSubmission() {
       executionTime?: number;
       memoryUsed?: number;
     }) => {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData, error: userError } = await supabase.auth.getUser();
       
-      if (!userData.user) {
+      if (userError || !userData.user) {
         toast.error('You must be logged in to submit solutions');
         throw new Error('Not authenticated');
       }
@@ -118,15 +118,20 @@ export function useCreateSubmission() {
       return data;
     },
     onSuccess: (_, variables) => {
-      const { data: userData } = supabase.auth.getUser();
-      if (userData?.user) {
-        queryClient.invalidateQueries({ 
-          queryKey: ['submissions', userData.user.id, variables.problemId] 
-        });
-        queryClient.invalidateQueries({
-          queryKey: ['solved-problems', userData.user.id]
-        });
-      }
+      // Async function to get user and invalidate queries
+      const invalidateQueries = async () => {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          queryClient.invalidateQueries({ 
+            queryKey: ['submissions', userData.user.id, variables.problemId] 
+          });
+          queryClient.invalidateQueries({
+            queryKey: ['solved-problems', userData.user.id]
+          });
+        }
+      };
+      
+      invalidateQueries();
       toast.success('Solution submitted successfully');
     }
   });

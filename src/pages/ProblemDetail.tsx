@@ -1,397 +1,295 @@
 
-import { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import CodeEditor from '@/components/code/CodeEditor';
-import { ArrowLeft, Clock, Database, Send, Play } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useProblem } from '@/hooks/use-problems';
+import { useCreateSubmission, useUserProblemSubmissions } from '@/hooks/use-submissions';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProblem, useUserSolvedProblems } from '@/hooks/use-problems';
-import { useUserProblemSubmissions, useCreateSubmission } from '@/hooks/use-submissions';
-import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const codeTemplates = {
-  python: '# Write your code here\n\ndef solution():\n    # Your solution logic\n    pass\n\n# Test your solution\nsolution()',
-  javascript: '// Write your code here\n\nfunction solution() {\n  // Your solution logic\n}\n\n// Test your solution\nsolution();',
-  cpp: '#include <iostream>\nusing namespace std;\n\n// Write your code here\n\nint main() {\n  // Your solution logic\n  return 0;\n}'
-};
+import { toast } from 'sonner';
+import CodeEditor from '@/components/code/CodeEditor';
+import { format } from 'date-fns';
 
 const ProblemDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const { data: problem, isLoading } = useProblem(id);
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { data: submissions, isLoading: submissionsLoading } = 
+    useUserProblemSubmissions(user?.id, id);
+  const submitMutation = useCreateSubmission();
   
   const [activeTab, setActiveTab] = useState('description');
-  const [code, setCode] = useState(codeTemplates.python);
-  const [language, setLanguage] = useState('python');
-  const [output, setOutput] = useState('');
-  const [isRunning, setIsRunning] = useState(false);
+  const [code, setCode] = useState('// Write your code here');
+  const [language, setLanguage] = useState('javascript');
   
-  const { data: problem, isLoading, error } = useProblem(id);
-  const { data: submissions = [] } = useUserProblemSubmissions(user?.id, id);
-  const { data: solvedProblemIds = [] } = useUserSolvedProblems(user?.id);
-  const createSubmission = useCreateSubmission();
-  
-  const isSolved = solvedProblemIds.includes(id || '');
-
-  const handleRun = () => {
-    if (!user) {
-      toast.error('Please log in to run code');
-      return;
-    }
-    
-    setIsRunning(true);
-    setOutput('');
-    
-    // Simulate code execution with timeout
-    setTimeout(() => {
-      // In a real app, this would send the code to a backend for execution
-      setOutput('Output will appear here...\n\nThis is a simulation. In a real app, the code would be executed on the server.\n\nStatus: Success');
-      setIsRunning(false);
-    }, 1500);
-  };
-
-  const handleSubmit = async () => {
-    if (!user) {
-      toast.error('Please log in to submit solutions');
-      return;
-    }
-    
-    if (!id) return;
-    
-    try {
-      // In a real app, the backend would evaluate the solution against test cases
-      // Here we'll just simulate success with a random chance of failure
-      const isSuccessful = Math.random() > 0.3;
-      
-      await createSubmission.mutateAsync({
-        problemId: id,
-        language,
-        code,
-        status: isSuccessful ? 'accepted' : 'wrong_answer',
-      });
-      
-      setActiveTab('submissions');
-    } catch (error) {
-      console.error('Error submitting solution:', error);
-    }
-  };
-  
-  const handleLanguageChange = (lang: string) => {
-    setLanguage(lang);
-    setCode(codeTemplates[lang as keyof typeof codeTemplates]);
-  };
-  
-  if (error) {
+  if (isLoading) {
     return (
-      <div className="container py-12 text-center">
-        <p className="text-xl">Problem not found</p>
-        <Button asChild className="mt-4">
-          <Link to="/problems">Back to Problems</Link>
-        </Button>
+      <div className="container max-w-4xl py-8">
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-1/3" />
+          <Skeleton className="h-4 w-1/4" />
+          <div className="space-y-2 mt-6">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+        </div>
       </div>
     );
   }
-
-  return (
-    <div className="container px-4 py-6 max-w-7xl">
-      <div className="mb-6">
-        <Button variant="ghost" asChild className="mb-4">
+  
+  if (!problem) {
+    return (
+      <div className="container max-w-4xl py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Problem not found</h1>
           <Link to="/problems">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Problems
+            <Button>Back to Problems</Button>
           </Link>
-        </Button>
-        
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            {isLoading ? (
-              <>
-                <Skeleton className="h-8 w-64 mb-2" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-6 w-20" />
-                  <Skeleton className="h-6 w-20" />
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold">{problem?.title}</h1>
-                  {isSolved && <span className="text-green-500 text-xl">✓</span>}
-                </div>
-                
-                <div className="flex flex-wrap mt-2 gap-2">
-                  <Badge variant="outline" className={
-                    problem?.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
-                    problem?.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }>
-                    {problem?.difficulty?.charAt(0).toUpperCase() + problem?.difficulty?.slice(1)}
-                  </Badge>
-                  
-                  {problem?.topics?.map(topic => (
-                    <Badge variant="outline" key={topic}>
-                      {topic}
-                    </Badge>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-          
-          {!isLoading && (
-            <div className="flex gap-4 text-sm">
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span>{problem?.time_limit} ms</span>
-              </div>
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <Database className="h-4 w-4" />
-                <span>{problem?.memory_limit} MB</span>
-              </div>
+        </div>
+      </div>
+    );
+  }
+  
+  const renderDifficultyBadge = (difficulty: string) => {
+    const colorMap = {
+      easy: 'bg-green-100 text-green-800 hover:bg-green-100',
+      medium: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100',
+      hard: 'bg-red-100 text-red-800 hover:bg-red-100',
+    };
+    
+    const color = colorMap[difficulty as keyof typeof colorMap] || 'bg-gray-100 text-gray-800';
+    
+    return (
+      <Badge variant="outline" className={color}>
+        {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
+      </Badge>
+    );
+  };
+  
+  const handleSubmit = () => {
+    if (!user) {
+      toast.error('You must be logged in to submit a solution');
+      return;
+    }
+    
+    if (!code.trim()) {
+      toast.error('Please write some code before submitting');
+      return;
+    }
+    
+    submitMutation.mutate({
+      problemId: problem.id,
+      code,
+      language,
+    });
+  };
+  
+  return (
+    <div className="container max-w-5xl py-8 px-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">{problem.title}</h1>
+          <div className="flex items-center gap-3 mt-2">
+            {renderDifficultyBadge(problem.difficulty)}
+            
+            <div className="flex flex-wrap gap-2">
+              {problem.topics && problem.topics.map(topic => (
+                <Badge key={topic} variant="outline" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                  {topic}
+                </Badge>
+              ))}
             </div>
-          )}
+          </div>
+        </div>
+        
+        <div className="mt-4 md:mt-0">
+          <Button onClick={handleSubmit} disabled={submitMutation.isPending}>
+            {submitMutation.isPending ? 'Submitting...' : 'Submit Solution'}
+          </Button>
         </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-card p-6 rounded-lg border shadow-sm">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="description">Description</TabsTrigger>
-              <TabsTrigger value="solution">Solution</TabsTrigger>
-              <TabsTrigger value="submissions">Submissions</TabsTrigger>
+        <div>
+          <Tabs defaultValue="description" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="w-full">
+              <TabsTrigger value="description" className="flex-1">Description</TabsTrigger>
+              <TabsTrigger value="submissions" className="flex-1">My Submissions</TabsTrigger>
             </TabsList>
             
-            {isLoading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-              </div>
-            ) : (
-              <>
-                <TabsContent value="description" className="space-y-6">
-                  <div>
-                    <h3 className="font-semibold mb-2">Problem Statement</h3>
-                    <p className="whitespace-pre-line">{problem?.description}</p>
+            <TabsContent value="description" className="mt-6">
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Problem Description</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="prose max-w-none">
+                    <p>{problem.description}</p>
                   </div>
-                  
-                  {problem?.constraints && (
-                    <>
-                      <Separator />
-                      
-                      <div>
-                        <h3 className="font-semibold mb-2">Constraints</h3>
-                        <pre className="text-sm font-mono bg-muted p-3 rounded overflow-x-auto">
-                          {problem.constraints}
-                        </pre>
-                      </div>
-                    </>
-                  )}
-                  
-                  <Separator />
-                  
-                  {problem?.input_format && (
-                    <div>
-                      <h3 className="font-semibold mb-2">Input Format</h3>
+                </CardContent>
+              </Card>
+              
+              {problem.input_format && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle>Input Format</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose max-w-none">
                       <p>{problem.input_format}</p>
                     </div>
-                  )}
-                  
-                  {problem?.output_format && (
-                    <div>
-                      <h3 className="font-semibold mb-2">Output Format</h3>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {problem.output_format && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle>Output Format</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose max-w-none">
                       <p>{problem.output_format}</p>
                     </div>
-                  )}
-                  
-                  {problem?.sampleTestCases && problem.sampleTestCases.length > 0 && (
-                    <>
-                      <Separator />
-                      
-                      <div>
-                        <h3 className="font-semibold mb-2">Examples</h3>
-                        <div className="space-y-4">
-                          {problem.sampleTestCases.map((testCase, index) => (
-                            <div key={index} className="space-y-2">
-                              <h4 className="font-medium">Example {index + 1}</h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                  <p className="text-sm text-muted-foreground mb-1">Input:</p>
-                                  <pre className="bg-muted p-2 rounded text-sm font-mono overflow-x-auto">
-                                    {testCase.input}
-                                  </pre>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-muted-foreground mb-1">Output:</p>
-                                  <pre className="bg-muted p-2 rounded text-sm font-mono overflow-x-auto">
-                                    {testCase.output}
-                                  </pre>
-                                </div>
-                              </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {problem.constraints && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle>Constraints</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose max-w-none">
+                      <p>{problem.constraints}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {problem.sampleTestCases && problem.sampleTestCases.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Example Test Cases</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      {problem.sampleTestCases.map((testCase: any, index: number) => (
+                        <div key={testCase.id} className="space-y-3">
+                          <div>
+                            <p className="font-semibold mb-1">Example {index + 1}:</p>
+                            <div className="bg-muted p-3 rounded-md">
+                              <p className="font-semibold text-sm">Input:</p>
+                              <pre className="mt-1 text-sm whitespace-pre-wrap">{testCase.input}</pre>
                             </div>
-                          ))}
+                          </div>
+                          <div>
+                            <div className="bg-muted p-3 rounded-md">
+                              <p className="font-semibold text-sm">Output:</p>
+                              <pre className="mt-1 text-sm whitespace-pre-wrap">{testCase.output}</pre>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </>
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="solution">
-                  {isSolved ? (
-                    <div className="space-y-4">
-                      <h3 className="font-semibold mb-2">Official Solution</h3>
-                      <p>Congratulations on solving this problem! Here's the official solution:</p>
-                      
-                      <pre className="bg-muted p-4 rounded text-sm font-mono overflow-x-auto">
-                        # This would contain the official solution code
-                        # In a real app, this would be a well-commented,
-                        # efficient solution to the problem.
-                      </pre>
-                      
-                      <h3 className="font-semibold mt-4 mb-2">Explanation</h3>
-                      <p>
-                        This is where the explanation for the solution would go,
-                        including time and space complexity analysis.
-                      </p>
+                      ))}
                     </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <p className="text-muted-foreground">
-                        Solutions will be available after you solve the problem or in the premium version.
-                      </p>
-                    </div>
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="submissions">
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="submissions" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>My Submissions</CardTitle>
+                  <CardDescription>History of your submissions for this problem</CardDescription>
+                </CardHeader>
+                <CardContent>
                   {!user ? (
-                    <div className="text-center py-12">
-                      <p className="text-muted-foreground mb-4">
-                        Please log in to see your submissions.
-                      </p>
-                      <Button onClick={() => navigate('/login')}>
-                        Log In
-                      </Button>
+                    <p className="text-muted-foreground">Please log in to view your submissions</p>
+                  ) : submissionsLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
                     </div>
-                  ) : submissions.length > 0 ? (
-                    <div className="space-y-4">
-                      <h3 className="font-semibold mb-2">Your Submissions</h3>
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b text-sm">
-                              <th className="text-left py-2 px-3">Date</th>
-                              <th className="text-left py-2 px-3">Status</th>
-                              <th className="text-left py-2 px-3">Language</th>
-                              <th className="text-left py-2 px-3">Runtime</th>
-                              <th className="text-left py-2 px-3">Memory</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {submissions.map(submission => (
-                              <tr key={submission.id} className="border-b hover:bg-muted/50">
-                                <td className="py-2 px-3 text-sm">
-                                  {new Date(submission.created_at).toLocaleString()}
-                                </td>
-                                <td className="py-2 px-3">
-                                  <span className={`inline-flex items-center text-xs px-2 py-1 rounded ${
+                  ) : submissions && submissions.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr>
+                            <th className="text-left p-2">Status</th>
+                            <th className="text-left p-2">Language</th>
+                            <th className="text-left p-2">Time</th>
+                            <th className="text-left p-2">Memory</th>
+                            <th className="text-left p-2">Submitted</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {submissions.map((submission: any) => (
+                            <tr key={submission.id} className="border-t hover:bg-muted/50">
+                              <td className="p-2">
+                                <span 
+                                  className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
                                     submission.status === 'accepted' 
                                       ? 'bg-green-100 text-green-800' 
                                       : 'bg-red-100 text-red-800'
-                                  }`}>
-                                    {submission.status === 'accepted' ? 'Accepted' : 'Failed'}
-                                  </span>
-                                </td>
-                                <td className="py-2 px-3 text-sm">{submission.language}</td>
-                                <td className="py-2 px-3 text-sm">{submission.execution_time} ms</td>
-                                <td className="py-2 px-3 text-sm">{submission.memory_used} MB</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                                  }`}
+                                >
+                                  {submission.status === 'accepted' ? 'Accepted' : 'Failed'}
+                                </span>
+                              </td>
+                              <td className="p-2">{submission.language}</td>
+                              <td className="p-2">{submission.execution_time} ms</td>
+                              <td className="p-2">{submission.memory_used} MB</td>
+                              <td className="p-2">
+                                {format(new Date(submission.created_at), 'MMM d, yyyy HH:mm')}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   ) : (
-                    <div className="text-center py-12">
-                      <p className="text-muted-foreground">
-                        You haven't submitted any solutions yet.
-                      </p>
-                    </div>
+                    <p className="text-muted-foreground">You haven't submitted any solutions for this problem yet.</p>
                   )}
-                </TabsContent>
-              </>
-            )}
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </div>
         
-        <div className="bg-card p-6 rounded-lg border shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Code Editor</h2>
-            <div className="flex items-center gap-2">
-              <select 
-                value={language}
-                onChange={(e) => handleLanguageChange(e.target.value)}
-                className="text-sm border rounded px-2 py-1 bg-background"
-              >
-                <option value="python">Python</option>
-                <option value="javascript">JavaScript</option>
-                <option value="cpp">C++</option>
-              </select>
-            </div>
-          </div>
-          
-          <div className="mb-4 h-[400px] border rounded">
-            <CodeEditor 
-              value={code}
-              onChange={setCode}
-              language={language}
-            />
-          </div>
-          
-          <div className="flex justify-between">
-            <div className="flex gap-3">
-              <Button 
-                onClick={handleRun} 
-                variant="outline"
-                disabled={isRunning || isLoading}
-              >
-                <Play className="mr-1 h-4 w-4" />
-                Run
-              </Button>
-              <Button 
-                onClick={handleSubmit} 
-                disabled={isRunning || isLoading || createSubmission.isPending || !user}
-              >
-                <Send className="mr-1 h-4 w-4" />
-                Submit
-              </Button>
-            </div>
-            
-            {!user && (
-              <Button variant="ghost" onClick={() => navigate('/login')}>
-                Log in to submit
-              </Button>
-            )}
-          </div>
-          
-          {output && (
-            <div className="mt-4">
-              <h3 className="text-sm font-medium mb-2">Output:</h3>
-              <div className="bg-muted p-3 rounded font-mono text-sm whitespace-pre-wrap overflow-auto max-h-[200px]">
-                {output}
+        <div>
+          <Card className="h-full flex flex-col">
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <CardTitle>Solution</CardTitle>
+                <select 
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="text-sm border rounded p-1"
+                >
+                  <option value="javascript">JavaScript</option>
+                  <option value="python">Python</option>
+                  <option value="java">Java</option>
+                  <option value="cpp">C++</option>
+                </select>
               </div>
-            </div>
-          )}
+            </CardHeader>
+            <CardContent className="flex-grow">
+              <div className="h-[600px] border rounded-md">
+                <CodeEditor 
+                  initialValue={code}
+                  onChange={setCode}
+                  language={language}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

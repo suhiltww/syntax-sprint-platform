@@ -2,7 +2,8 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useUserSubmissions, useProblems, useUserSolvedProblems } from "@/hooks/use-problems";
+import { useProblems, useUserSolvedProblems } from "@/hooks/use-problems";
+import { useUserSubmissions } from "@/hooks/use-submissions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";

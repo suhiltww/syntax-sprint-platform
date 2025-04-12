@@ -2,14 +2,14 @@
 import { useState } from 'react';
 import ProblemCard from '@/components/problems/ProblemCard';
 import ProblemFilter from '@/components/problems/ProblemFilter';
-import { useProblems, useUserSolvedProblems } from '@/hooks/use-problems';
+import { useProblems, useUserSolvedProblems, Problem } from '@/hooks/use-problems';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const Problems = () => {
   const [filters, setFilters] = useState({
     search: '',
-    difficulty: [] as string[],
+    difficulty: [] as ('easy' | 'medium' | 'hard')[],
     topics: [] as string[],
   });
 
@@ -45,7 +45,7 @@ const Problems = () => {
             </div>
           ))
         ) : problems && problems.length > 0 ? (
-          problems.map(problem => (
+          problems.map((problem: Problem) => (
             <ProblemCard 
               key={problem.id} 
               problem={problem} 
