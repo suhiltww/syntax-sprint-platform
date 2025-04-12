@@ -1,8 +1,10 @@
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import ProblemCard from '@/components/problems/ProblemCard';
 import ProblemFilter from '@/components/problems/ProblemFilter';
-import { mockProblems, mockUserProgress } from '@/data/mockData';
+import { useProblems, useUserSolvedProblems } from '@/hooks/use-problems';
+import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Problems = () => {
   const [filters, setFilters] = useState({
@@ -11,29 +13,10 @@ const Problems = () => {
     topics: [] as string[],
   });
 
-  const solvedProblemIds = mockUserProgress['2']?.solved || [];
+  const { user } = useAuth();
+  const { data: problems, isLoading } = useProblems(filters);
+  const { data: solvedProblemIds = [] } = useUserSolvedProblems(user?.id);
   
-  const filteredProblems = useMemo(() => {
-    return mockProblems.filter(problem => {
-      // Filter by search term
-      if (filters.search && !problem.title.toLowerCase().includes(filters.search.toLowerCase())) {
-        return false;
-      }
-      
-      // Filter by difficulty
-      if (filters.difficulty.length > 0 && !filters.difficulty.includes(problem.difficulty)) {
-        return false;
-      }
-      
-      // Filter by topics
-      if (filters.topics.length > 0 && !problem.topics.some(topic => filters.topics.includes(topic))) {
-        return false;
-      }
-      
-      return true;
-    });
-  }, [filters]);
-
   return (
     <div className="container py-8 px-4 max-w-6xl">
       <div className="mb-8">
@@ -48,8 +31,21 @@ const Problems = () => {
       </div>
       
       <div className="space-y-4 animated-list">
-        {filteredProblems.length > 0 ? (
-          filteredProblems.map(problem => (
+        {isLoading ? (
+          // Skeleton loading state
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="border rounded-lg p-6 shadow-sm">
+              <Skeleton className="h-6 w-1/3 mb-4" />
+              <Skeleton className="h-4 w-1/2 mb-2" />
+              <div className="flex gap-2 mt-4">
+                <Skeleton className="h-6 w-16" />
+                <Skeleton className="h-6 w-16" />
+                <Skeleton className="h-6 w-16" />
+              </div>
+            </div>
+          ))
+        ) : problems && problems.length > 0 ? (
+          problems.map(problem => (
             <ProblemCard 
               key={problem.id} 
               problem={problem} 

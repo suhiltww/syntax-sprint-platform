@@ -1,36 +1,48 @@
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+
+const loginSchema = z.object({
+  email: z.string().email('Please enter a valid email'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 const LoginForm = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { signIn } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
-
     try {
-      // This would be a real API call in production
-      console.log('Login attempt with:', { email, password });
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (email === 'student@example.com' && password === 'password') {
-        toast.success('Logged in successfully!');
-        // In a real app, would store token and redirect
-        window.location.href = '/dashboard';
-      } else {
-        toast.error('Invalid email or password');
-      }
+      await signIn(values.email, values.password);
+      navigate('/dashboard');
     } catch (error) {
-      toast.error('Login failed. Please try again.');
       console.error('Login error:', error);
     } finally {
       setIsLoading(false);
@@ -43,48 +55,61 @@ const LoginForm = () => {
         <h1 className="text-3xl font-bold">Welcome back</h1>
         <p className="text-muted-foreground">Enter your credentials to access your account</p>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="you@example.com"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full"
+      
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="you@example.com"
+                    type="email"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
-            <Link to="/forgot-password" className="text-sm text-accent underline-offset-4 hover:underline">
-              Forgot your password?
-            </Link>
-          </div>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full"
+          
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Password</FormLabel>
+                  <Link to="/forgot-password" className="text-sm text-accent underline-offset-4 hover:underline">
+                    Forgot your password?
+                  </Link>
+                </div>
+                <FormControl>
+                  <Input
+                    placeholder="••••••••"
+                    type="password"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? 'Signing In...' : 'Sign In'}
-        </Button>
-      </form>
+          
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? 'Signing In...' : 'Sign In'}
+          </Button>
+        </form>
+      </Form>
+      
       <div className="text-center text-sm">
         Don't have an account?{' '}
         <Link to="/register" className="text-accent underline-offset-4 hover:underline">
           Sign up
         </Link>
-      </div>
-      <div className="text-xs text-muted-foreground text-center mt-4">
-        Use <strong>student@example.com</strong> and <strong>password</strong> for demo
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Code,
   User,
@@ -19,16 +19,23 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { mockUsers } from '@/data/mockData';
-
-// For demo purposes, we'll use the student user
-const currentUser = mockUsers.find(user => user.role === 'student');
+import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar = () => {
-  const handleLogout = () => {
-    console.log('User logged out');
-    // In a real app, this would handle logout logic
+  const { user, userRole, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/');
   };
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  const userDisplayName = user?.user_metadata?.name || user?.email || 'User';
 
   return (
     <nav className="border-b bg-card">
@@ -43,10 +50,12 @@ const Navbar = () => {
             <Link to="/problems" className="text-muted-foreground hover:text-foreground transition-colors">
               Problems
             </Link>
-            <Link to="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
-              Dashboard
-            </Link>
-            {currentUser?.role === 'admin' && (
+            {user && (
+              <Link to="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+                Dashboard
+              </Link>
+            )}
+            {userRole === 'admin' && (
               <Link to="/admin" className="text-muted-foreground hover:text-foreground transition-colors">
                 Admin
               </Link>
@@ -55,13 +64,13 @@ const Navbar = () => {
         </div>
         
         <div className="flex items-center gap-4">
-          {currentUser ? (
+          {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar>
                     <AvatarFallback className="bg-accent/10 text-accent">
-                      {currentUser.name.substring(0, 2).toUpperCase()}
+                      {getInitials(userDisplayName)}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -69,24 +78,24 @@ const Navbar = () => {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>
                   <div className="flex flex-col gap-1">
-                    <p className="font-medium">{currentUser.name}</p>
-                    <p className="text-xs text-muted-foreground">{currentUser.email}</p>
+                    <p className="font-medium">{userDisplayName}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/profile')}>
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/problems')}>
                   <BookOpen className="mr-2 h-4 w-4" />
                   <span>My Problems</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/dashboard')}>
                   <BarChart className="mr-2 h-4 w-4" />
                   <span>Progress</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
                 </DropdownMenuItem>
